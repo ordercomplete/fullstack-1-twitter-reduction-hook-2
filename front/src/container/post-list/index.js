@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 
 import Title from "../../component/title";
 import Grid from "../../component/grid";
@@ -11,6 +11,10 @@ import { Alert, Skeleton, LOAD_STATUS } from "../../component/load";
 import { getDate } from "../../util/getDate";
 
 import PostItem from "../post-item";
+
+import { useWindowListener } from "../../util/useWindowListener";
+
+import { appLocation } from "../../util/appLocation";
 
 export default function Container() {
   const [status, setStatus] = useState(null);
@@ -46,12 +50,50 @@ export default function Container() {
     isEmpty: raw.list.length === 0,
   });
 
-  if (status === null) {
+  useEffect(() => {
     getData();
-  }
+
+    const intervalId = setInterval(() => getData(), 5000);
+
+    // const intervalId = setInterval(() => alert(123), 5000);
+    // alert(1);
+    return () => {
+      clearInterval(intervalId);
+      // alert(2);
+    };
+  }, []);
+
+  // example 3 =====================
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  useWindowListener("pointermove", (e) => {
+    setPosition({ x: e.clientX, y: e.clientY });
+  });
+
+  // example 4 =====================
+
+  // if (status === null) {
+  //   getData();
+  // }
 
   return (
     <Grid>
+      {/* example 3 start ===================== */}
+      <div
+        style={{
+          position: "absolute",
+          backgroundColor: "pink",
+          borderRadius: "50%",
+          opacity: 0.6,
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          pointerEvents: "none",
+          left: -20,
+          top: -20,
+          width: 40,
+          height: 40,
+        }}
+      />
+      {/* example 3 end ===================== */}
       <Box>
         <Grid>
           <Title>Home</Title>
