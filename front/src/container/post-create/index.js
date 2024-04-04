@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useReducer } from "react";
 
 import "./index.css";
 
@@ -7,14 +7,19 @@ import Grid from "../../component/grid";
 
 import { Alert, Loader, LOAD_STATUS } from "../../component/load";
 
+import {
+  requestInitialState,
+  requestReducer,
+  REQUEST_ACTION_TYPE,
+} from "../../util/request";
+
 export default function Component({
   onCreate,
   placeholder,
   button,
   id = null,
 }) {
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
+  const [state, dispatch] = useReducer(requestReducer, requestInitialState);
 
   const handleSubmit = (value) => {
     //Стара версія, яка не працювала: return sendData({ value }) - чому?
@@ -22,7 +27,7 @@ export default function Component({
   };
 
   const sendData = async ({ dataToSend }) => {
-    setStatus(LOAD_STATUS.PROGRESS);
+    dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS });
 
     try {
       const res = await fetch("http://localhost:4000/post-create", {
@@ -36,16 +41,14 @@ export default function Component({
       const data = await res.json();
 
       if (res.ok) {
-        setStatus(null);
+        dispatch({ type: REQUEST_ACTION_TYPE.RESET });
 
         if (onCreate) onCreate();
       } else {
-        setMessage(data.message);
-        setStatus(LOAD_STATUS.ERROR);
+        dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS, message: data.message });
       }
     } catch (error) {
-      setMessage(error.message);
-      setStatus(LOAD_STATUS.ERROR);
+      dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS, message: error.message });
     }
   };
   const convertData = ({ value }) =>
@@ -62,13 +65,26 @@ export default function Component({
         button={button}
         onSubmit={handleSubmit}
       />
-      {status === LOAD_STATUS.ERROR && (
-        <Alert status={status} message={message} />
+      {state.status === LOAD_STATUS.ERROR && (
+        <Alert status={state.status} message={state.message} />
       )}
-      {status === LOAD_STATUS.PROGRESS && <Loader />}
+      {state.status === LOAD_STATUS.PROGRESS && <Loader />}
     </Grid>
   );
 }
+// Цей файл є контейнером, який виводить форму створення допису.
+// Основний функціонал:
+
+// Отримання та обробка введеного користувачем тексту через компонент 'FieldForm'.
+// Формування та відправлення запиту на створення нового допису на сервер за допомогою fetch API.
+// Обробка потенційних помилок та повідомлення про статус виконання запиту.
+// Виведення компонентів завантаження та поля повідомлення про помилки.
+
+// Цей файл використовує React, JavaScript ES6, та Fetch API для взаємодії з сервером:
+// Використовує React Hook useReducer для зміни станів запиту, при цьому використовує reducer (requestReducer) та початковий стан (requestInitialState) з файлу 'request.js'.
+// Функція handleSubmit: отримує текст введеного користувачем допису як аргумент та передає його до функції sendData.
+// Функція sendData: створює та виконує POST запит до серверу з даними, які потрібно відправити. Вона також відправляє відповідні дії до стану запиту в залежності від успішності запиту.
+// Функція convertData: виконує формування об'єкта запросу для відправки на сервер.
 
 // ### Детальний опис функцій, методів та властивостей
 

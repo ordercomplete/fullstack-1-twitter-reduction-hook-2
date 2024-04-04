@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment, useEffect, useReducer } from "react";
 
 import Title from "../../component/title";
 import Grid from "../../component/grid";
@@ -14,28 +14,38 @@ import PostItem from "../post-item";
 
 import { useWindowListener } from "../../util/useWindowListener";
 
-import { appLocation } from "../../util/appLocation";
+import {
+  requestInitialState,
+  requestReducer,
+  REQUEST_ACTION_TYPE,
+} from "../../util/request";
 
 export default function Container() {
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
-  const [data, setData] = useState(null);
+  const [state, dispatch] = useReducer(requestReducer, requestInitialState);
 
   const getData = async () => {
-    setStatus(LOAD_STATUS.PROGRESS);
+    dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS });
     try {
       const res = await fetch("http://localhost:4000/post-list");
+
       const data = await res.json();
+
       if (res.ok) {
-        setData(convertData(data));
-        setStatus(LOAD_STATUS.SUCCESS);
+        dispatch({
+          type: REQUEST_ACTION_TYPE.SUCCESS,
+          payload: convertData(data),
+        });
       } else {
-        setMessage(data.message);
-        setStatus(LOAD_STATUS.ERROR);
+        dispatch({
+          type: REQUEST_ACTION_TYPE.ERROR,
+          payload: data.message,
+        });
       }
     } catch (error) {
-      setMessage(error.message);
-      setStatus(LOAD_STATUS.ERROR);
+      dispatch({
+        type: REQUEST_ACTION_TYPE.ERROR,
+        payload: error.message,
+      });
     }
   };
 
@@ -52,15 +62,6 @@ export default function Container() {
 
   useEffect(() => {
     getData();
-
-    const intervalId = setInterval(() => getData(), 5000);
-
-    // const intervalId = setInterval(() => alert(123), 5000);
-    // alert(1);
-    return () => {
-      clearInterval(intervalId);
-      // alert(2);
-    };
   }, []);
 
   // example 3 =====================
@@ -105,7 +106,7 @@ export default function Container() {
         </Grid>
       </Box>
 
-      {status === LOAD_STATUS.PROGRESS && (
+      {state.status === REQUEST_ACTION_TYPE.PROGRESS && (
         <Fragment>
           <Box>
             <Skeleton />
@@ -116,16 +117,16 @@ export default function Container() {
         </Fragment>
       )}
 
-      {status === LOAD_STATUS.ERROR && (
-        <Alert status={status} message={message} />
+      {state.status === REQUEST_ACTION_TYPE.ERROR && (
+        <Alert status={state.status} message={state.message} />
       )}
 
-      {status === LOAD_STATUS.SUCCESS && (
+      {state.status === REQUEST_ACTION_TYPE.SUCCESS && (
         <Fragment>
-          {data.isEmpty ? (
+          {state.data.isEmpty ? (
             <Alert message="Список постів пустий" />
           ) : (
-            data.list.map((item) => (
+            state.data.list.map((item) => (
               <Fragment key={item.id}>
                 <PostItem {...item} />
               </Fragment>
@@ -136,6 +137,22 @@ export default function Container() {
     </Grid>
   );
 }
+
+// Цей файл – це головний контейнер, який виводить список всіх дописів та форму створення нового допису.
+
+// Основний функціонал:
+
+// Здійснення запиту до серверу для отримання списку всіх дописів при завантаженні сторінки.
+// Виведення списку всіх дописів за допомогою компонента 'PostItem'.
+// Виклик методу отримання нового списку дописів після створення нового допису.
+// Використовує власні hook для відстеження положення вказівника миші.
+// Виведення компонентів завантаження та поля повідомлення про помилки.
+
+// Цей файл використовує React, JavaScript ES6, та Fetch API:
+
+// Використовує React Hook useReducer для зміни станів списку дописів, при цьому використовує свій власний reducer (requestReducer) та початковий стан (requestInitialState) з файлу 'request.js'.
+// Функція getData: створює і виконує запит GET до серверу для отримання списку всіх дописів.
+// Функція convertData: формує структуризований об'єкт з масиву з отриманого списку дописів.
 
 // ### Опис подій, функцій, методів та властивостей
 

@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment, useEffect, useReducer } from "react";
 
 import Grid from "../../component/grid";
 import Box from "../../component/box";
@@ -11,33 +11,46 @@ import { getDate } from "../../util/getDate";
 
 import PostContent from "../../component/post-content";
 
-export default function Container({ id, username, text, date }) {
-  const [data, setData] = useState({
-    id,
-    username,
-    text,
-    date,
-    reply: null,
-  });
+import {
+  requestInitialState,
+  requestReducer,
+  REQUEST_ACTION_TYPE,
+} from "../../util/request";
 
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
+export default function Container({ id, username, text, date }) {
+  const [state, dispatch] = useReducer(
+    requestReducer,
+    requestInitialState,
+    (state) => ({ ...state, data: { id, username, text, date, reply: null } })
+  );
+
+  // const [status, setStatus] = useState(null);
+  // const [message, setMessage] = useState("");
 
   const getData = async () => {
-    setStatus(LOAD_STATUS.PROGRESS);
+    dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS });
     try {
-      const res = await fetch(`http://localhost:4000/post-item?id=${data.id}`);
+      const res = await fetch(
+        `http://localhost:4000/post-item?id=${state.data.id}`
+      );
+
       const resData = await res.json();
       if (res.ok) {
-        setData(convertData(resData));
-        setStatus(LOAD_STATUS.SUCCESS);
+        dispatch({
+          type: REQUEST_ACTION_TYPE.SUCCESS,
+          payload: convertData(resData),
+        });
       } else {
-        setMessage(resData.message);
-        setStatus(LOAD_STATUS.ERROR);
+        dispatch({
+          type: REQUEST_ACTION_TYPE.ERROR,
+          payload: resData.message,
+        });
       }
     } catch (error) {
-      setMessage(error.message);
-      setStatus(LOAD_STATUS.ERROR);
+      dispatch({
+        type: REQUEST_ACTION_TYPE.ERROR,
+        payload: error.message,
+      });
     }
   };
 
@@ -60,9 +73,6 @@ export default function Container({ id, username, text, date }) {
   const [isOpen, setOpen] = useState(false);
 
   const handleOpen = () => {
-    // if (status === null) {
-    //   getData();
-    // }
     setOpen(!isOpen);
   };
 
@@ -82,9 +92,9 @@ export default function Container({ id, username, text, date }) {
         onClick={handleOpen}
       >
         <PostContent
-          username={data.username}
-          date={data.date}
-          text={data.text}
+          username={state.data.username}
+          date={state.data.date}
+          text={state.data.text}
         />
       </div>
 
@@ -95,12 +105,12 @@ export default function Container({ id, username, text, date }) {
               <PostCreate
                 placeholder="Post your reply!"
                 button="Reply"
-                id={data.id}
+                id={state.data.id}
                 onCreate={getData}
               />
             </Box>
 
-            {status === LOAD_STATUS.PROGRESS && (
+            {state.status === LOAD_STATUS.PROGRESS && (
               <Fragment>
                 <Box>
                   <Skeleton />
@@ -111,13 +121,13 @@ export default function Container({ id, username, text, date }) {
               </Fragment>
             )}
 
-            {status === LOAD_STATUS.ERROR && (
-              <Alert status={status} message={message} />
+            {state.status === LOAD_STATUS.ERROR && (
+              <Alert status={state.status} message={state.message} />
             )}
 
-            {status === LOAD_STATUS.SUCCESS &&
-              data.isEmpty === false &&
-              data.reply.map((item) => (
+            {state.status === LOAD_STATUS.SUCCESS &&
+              state.data.isEmpty === false &&
+              state.data.reply.map((item) => (
                 <Fragment key={item.id}>
                   <Box>
                     <PostContent {...item} />
@@ -130,6 +140,22 @@ export default function Container({ id, username, text, date }) {
     </Box>
   );
 }
+
+// Цей файл є контейнером, який виводить окремий допис та форму створення відповіді.
+
+// Основний функціонал:
+
+// Здійснення запиту до серверу для отримання даних про заданий допис при кожному відкритті допису.
+// Виведення деталей допису, включаючи відповіді на нього.
+// Підтримка можливості відкриття та закриття окремих дописів.
+// Виведення компонентів завантаження та поля повідомлення про помилки при завантаженні даних.
+
+// Цей файл використовує React, JavaScript ES6, та Fetch API:
+
+// Використовує React Hook useReducer для зміни станів відповіді на запит, при цьому використовується reducer (requestReducer) та початковий стан (requestInitialState) з файлу 'request.js'.
+// Функція getData: створює та виконує запит GET до серверу для отримання даних про вказаний допис.
+// Функція convertData: обробляє відповідь від сервера та формує структуризований об'єкт даних.
+// Функція handleOpen: змінює стан isOpen, що визначає чи відкритий детальний вигляд допису.
 
 // ### Детальний опис подій, функцій, методів та властивостей у файлі
 
